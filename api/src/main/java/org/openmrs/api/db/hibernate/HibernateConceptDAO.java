@@ -480,7 +480,7 @@ public class HibernateConceptDAO implements ConceptDAO {
 		if (name != null) {
 			crit.add(Restrictions.like("name", name, MatchMode.START));
 		}
-		
+
 		return crit.list();
 	}
 	
@@ -1019,49 +1019,33 @@ public class HibernateConceptDAO implements ConceptDAO {
 	
 	/**
 	 * @see org.openmrs.api.db.ConceptDAO#getConceptsByMapping(String, String, boolean)
+	 * This implementation uses Hibernate-Search / Lucene to query the Concept index
 	 */
 	@Override
 	@SuppressWarnings("unchecked")
 	public List<Concept> getConceptsByMapping(String code, String sourceName, boolean includeRetired) {
-		Criteria criteria = sessionFactory.getCurrentSession().createCriteria(ConceptMap.class);
-		
-		// make this criteria return a list of concepts
-		criteria.setProjection(Projections.property("concept"));
-		
-		//join to the conceptReferenceTerm table
-		criteria.createAlias("conceptReferenceTerm", "term");
-		
-		// match the source code to the passed code
-		if (Context.getAdministrationService().isDatabaseStringComparisonCaseSensitive()) {
-			criteria.add(Restrictions.eq("term.code", code).ignoreCase());
-		} else {
-			criteria.add(Restrictions.eq("term.code", code));
-		}
-		
-		// join to concept reference source and match to the h17Code or source name
-		criteria.createAlias("term.conceptSource", "source");
-		if (Context.getAdministrationService().isDatabaseStringComparisonCaseSensitive()) {
-			criteria.add(Restrictions.or(Restrictions.eq("source.name", sourceName).ignoreCase(), Restrictions.eq(
-			    "source.hl7Code", sourceName).ignoreCase()));
-		} else {
-			criteria.add(Restrictions.or(Restrictions.eq("source.name", sourceName), Restrictions.eq("source.hl7Code",
-			    sourceName)));
-		}
-		
-		criteria.createAlias("concept", "concept");
-		
+		String quotedSourceAndCode = "\"" + sourceName + ":" + code + "\"";
+		StringBuilder query = new StringBuilder();
+		query.append("(");
+		query.append("conceptMappings.conceptReferenceTerm.hl7SourceAndCode: ").append(quotedSourceAndCode);
+		query.append(" OR ");
+		query.append("conceptMappings.conceptReferenceTerm.conceptSourceNameAndCode: ").append(quotedSourceAndCode);
+		query.append(")");
 		if (!includeRetired) {
-			// ignore retired concepts
-			criteria.add(Restrictions.eq("concept.retired", false));
-		} else {
-			// sort retired concepts to the end of the list
-			criteria.addOrder(Order.asc("concept.retired"));
+			query.append(" AND retired: false");
 		}
-		
-		// we only want distinct concepts
-		criteria.setResultTransformer(DistinctRootEntityResultTransformer.INSTANCE);
-		
-		return (List<Concept>) criteria.list();
+		LuceneQuery<Concept> luceneQuery = LuceneQuery.newQuery(Concept.class, sessionFactory.getCurrentSession(), query.toString());
+		luceneQuery.skipSame("conceptId");
+
+		List<Concept> results = luceneQuery.list();
+		if (includeRetired) {
+			Collections.sort(results, (Concept c1, Concept c2) -> {
+				Integer r1 = (c1.getRetired() == null || !c1.getRetired()) ? 0 : 1;
+				Integer r2 = (c2.getRetired() == null || !c2.getRetired()) ? 0 : 1;
+				return r1.compareTo(r2);
+			});
+		}
+		return results;
 	}
 	
 	/**
@@ -1072,7 +1056,7 @@ public class HibernateConceptDAO implements ConceptDAO {
 		return (Concept) sessionFactory.getCurrentSession().createQuery("from Concept c where c.uuid = :uuid").setString(
 		    "uuid", uuid).uniqueResult();
 	}
-	
+
 	/**
 	 * @see org.openmrs.api.db.ConceptDAO#getConceptClassByUuid(java.lang.String)
 	 */
@@ -1906,7 +1890,7 @@ public class HibernateConceptDAO implements ConceptDAO {
 		
 		return drugQuery.list();
 	}
-	
+
 	/**
 	 * @see org.openmrs.api.db.ConceptDAO#getDrugsByMapping(String, ConceptSource, Collection,
 	 *      boolean)

@@ -13,8 +13,10 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import org.hibernate.search.annotations.Analyze;
+import org.hibernate.search.annotations.Analyzer;
 import org.hibernate.search.annotations.DocumentId;
 import org.hibernate.search.annotations.Field;
+import org.openmrs.api.db.hibernate.search.LuceneAnalyzers;
 
 /**
  * A concept reference term is typically name for a concept by which it is referred in another
@@ -29,7 +31,7 @@ public class ConceptReferenceTerm extends BaseChangeableOpenmrsMetadata {
 	
 	@DocumentId
 	private Integer conceptReferenceTermId;
-	
+
 	private ConceptSource conceptSource;
 	
 	//The unique code used to identify the reference term in it's reference terminology
@@ -205,5 +207,27 @@ public class ConceptReferenceTerm extends BaseChangeableOpenmrsMetadata {
 		}
 		
 		return "";
+	}
+
+	/**
+	 * @return a combination of the term source's HL7 source and code within that source, to use as a lookup
+	 * This is commonly used as a means to uniquely lookup a particular Concept as an alternative to UUID
+	 * We annotate as a hibernate-search field with a phrase analyzer in order to enable fast searching of
+	 * Concepts by this field using Lucene in a full-phrase, case-insensitive manner
+	 */
+	@Field(analyzer = @Analyzer(definition = LuceneAnalyzers.PHRASE_ANALYZER))
+	public String getHl7SourceAndCode() {
+		return getConceptSource().getHl7Code() + ":" + getCode();
+	}
+
+	/**
+	 * @return a combination of the term source's name and code within that source, to use as a lookup
+	 * This is commonly used as a means to uniquely lookup a particular Concept as an alternative to UUID
+	 * We annotate as a hibernate-search field with a phrase analyzer in order to enable fast searching of
+	 * Concepts by this field using Lucene in a full-phrase, case-insensitive manner
+	 */
+	@Field(analyzer = @Analyzer(definition = LuceneAnalyzers.PHRASE_ANALYZER))
+	public String getConceptSourceNameAndCode() {
+		return getConceptSource().getName() + ":" + getCode();
 	}
 }

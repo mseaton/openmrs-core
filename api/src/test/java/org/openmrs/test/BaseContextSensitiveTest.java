@@ -71,6 +71,7 @@ import org.junit.Before;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.openmrs.Concept;
 import org.openmrs.ConceptName;
 import org.openmrs.Drug;
 import org.openmrs.PatientIdentifier;
@@ -945,7 +946,7 @@ public abstract class BaseContextSensitiveTest extends AbstractJUnit4SpringConte
 	
 	public Class<?>[] getIndexedTypes() {
 		return new Class<?>[] { ConceptName.class, Drug.class, PersonName.class, PersonAttribute.class,
-				PatientIdentifier.class};
+				PatientIdentifier.class, Concept.class};
 	}
 	
 	/**
