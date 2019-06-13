@@ -111,6 +111,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
          * @should force set flag if set members exist
 	 */
 	@Override
+	@CacheEvict(value = CONCEPT_IDS_BY_MAPPING_CACHE_NAME, allEntries = true)
 	public Concept saveConcept(Concept concept) throws APIException {
 		ensureConceptMapTypeIsSet(concept);
 
@@ -294,8 +295,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 			
 			concept.setRetired(true);
 			concept.setRetireReason(reason);
-			return dao.saveConcept(concept);
-			
+			return Context.getConceptService().saveConcept(concept);
 		}
 		
 		return concept;
@@ -955,8 +955,8 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	 * @see org.openmrs.api.ConceptService#purgeConceptSource(org.openmrs.ConceptSource)
 	 */
 	@Override
+	@CacheEvict(value = CONCEPT_IDS_BY_MAPPING_CACHE_NAME, allEntries = true)
 	public ConceptSource purgeConceptSource(ConceptSource cs) throws APIException {
-		
 		return dao.deleteConceptSource(cs);
 	}
 	
@@ -966,7 +966,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	@Override
 	public ConceptSource retireConceptSource(ConceptSource cs, String reason) throws APIException {
 		// retireReason is automatically set in BaseRetireHandler
-		return dao.saveConceptSource(cs);
+		return Context.getConceptService().saveConceptSource(cs);
 	}
 	
 	/**
@@ -1489,6 +1489,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	 * @see ConceptService#updateConceptIndexes()
 	 */
 	@Override
+	@CacheEvict(value = CONCEPT_IDS_BY_MAPPING_CACHE_NAME, allEntries = true)
 	public void updateConceptIndexes() throws APIException {
 		Context.updateSearchIndexForType(ConceptName.class);
 	}
