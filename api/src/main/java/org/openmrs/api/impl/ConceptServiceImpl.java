@@ -66,6 +66,8 @@ import org.openmrs.util.OpenmrsUtil;
 import org.openmrs.validator.ValidateUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
@@ -88,7 +90,9 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	private static Concept unknownConcept;
 
 	private static final String errorMessage = "Error generated";
-	
+
+	private static final String CONCEPT_IDS_BY_MAPPING_CACHE_NAME = "conceptIdsByMapping";
+
 	/**
 	 * @see org.openmrs.api.ConceptService#setConceptDAO(org.openmrs.api.db.ConceptDAO)
 	 */
@@ -969,6 +973,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	 * @see org.openmrs.api.ConceptService#saveConceptSource(org.openmrs.ConceptSource)
 	 */
 	@Override
+	@CacheEvict(value = CONCEPT_IDS_BY_MAPPING_CACHE_NAME, allEntries = true)
 	public ConceptSource saveConceptSource(ConceptSource conceptSource) throws APIException {
 		return dao.saveConceptSource(conceptSource);
 	}
@@ -1161,7 +1166,21 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	@Override
 	@Transactional(readOnly = true)
 	public List<Concept> getConceptsByMapping(String code, String sourceName, boolean includeRetired) throws APIException {
-		return dao.getConceptsByMapping(code, sourceName, includeRetired);
+		List<Concept> concepts = new ArrayList<>();
+		for (Integer conceptId : Context.getConceptService().getConceptIdsByMapping(code, sourceName, includeRetired)) {
+			concepts.add(getConcept(conceptId));
+		}
+		return concepts;
+	}
+
+	/**
+	 * @see org.openmrs.api.ConceptService#getConceptIdsByMapping(java.lang.String, java.lang.String, boolean)
+	 */
+	@Override
+	@Transactional(readOnly = true)
+	@Cacheable(value = CONCEPT_IDS_BY_MAPPING_CACHE_NAME)
+	public List<Integer> getConceptIdsByMapping(String code, String sourceName, boolean includeRetired) throws APIException {
+		return dao.getConceptIdsByMapping(code, sourceName, includeRetired);
 	}
 	
 	/**
@@ -1703,6 +1722,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	 * @see org.openmrs.api.ConceptService#saveConceptReferenceTerm(org.openmrs.ConceptReferenceTerm)
 	 */
 	@Override
+	@CacheEvict(value = CONCEPT_IDS_BY_MAPPING_CACHE_NAME, allEntries = true)
 	public ConceptReferenceTerm saveConceptReferenceTerm(ConceptReferenceTerm conceptReferenceTerm) throws APIException {
 		return dao.saveConceptReferenceTerm(conceptReferenceTerm);
 	}
@@ -1718,7 +1738,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 			tmpRetireReason = Context.getMessageSourceService().getMessage("general.default.retireReason");
 		}
 		conceptReferenceTerm.setRetireReason(tmpRetireReason);
-		return dao.saveConceptReferenceTerm(conceptReferenceTerm);
+		return Context.getConceptService().saveConceptReferenceTerm(conceptReferenceTerm);
 	}
 	
 	/**
@@ -1733,6 +1753,7 @@ public class ConceptServiceImpl extends BaseOpenmrsService implements ConceptSer
 	 * @see org.openmrs.api.ConceptService#purgeConceptReferenceTerm(org.openmrs.ConceptReferenceTerm)
 	 */
 	@Override
+	@CacheEvict(value = CONCEPT_IDS_BY_MAPPING_CACHE_NAME, allEntries = true)
 	public void purgeConceptReferenceTerm(ConceptReferenceTerm conceptReferenceTerm) throws APIException {
 		if (dao.isConceptReferenceTermInUse(conceptReferenceTerm)) {
 			throw new APIException("ConceptRefereceTerm.inUse", (Object[]) null);
