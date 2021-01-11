@@ -163,6 +163,7 @@ public class HibernatePatientDAO implements PatientDAO {
 		}
 		
 	}
+	
 	public List<Patient> getPatients(String query, List<PatientIdentifierType> identifierTypes,
 		boolean matchIdentifierExactly, Integer start, Integer length) throws DAOException{
 		
@@ -180,15 +181,12 @@ public class HibernatePatientDAO implements PatientDAO {
 			tmpLength = HibernatePersonDAO.getMaximumSearchResults();
 		}
 		
-		List<Patient> patients = findPatients(query, identifierTypes, matchIdentifierExactly, tmpStart, tmpLength);
-		
-		return patients;
-		
+		return findPatients(query, identifierTypes, matchIdentifierExactly, tmpStart, tmpLength);
 	}
 	
 	/**
 	 * @see org.openmrs.api.db.PatientDAO#getPatients(String, boolean, Integer, Integer)
-	 * @should return exact match first
+	 * <strong>Should</strong> return exact match first
 	 */
 	@Override
 	public List<Patient> getPatients(String query, boolean includeVoided, Integer start, Integer length) throws DAOException {
@@ -327,11 +325,11 @@ public class HibernatePatientDAO implements PatientDAO {
 	}
 	
 	/**
-	 * @should not return null when includeRetired is false
-	 * @should not return retired when includeRetired is false
-	 * @should not return null when includeRetired is true
-	 * @should return all when includeRetired is true
-	 * @should return ordered
+	 * <strong>Should</strong> not return null when includeRetired is false
+	 * <strong>Should</strong> not return retired when includeRetired is false
+	 * <strong>Should</strong> not return null when includeRetired is true
+	 * <strong>Should</strong> return all when includeRetired is true
+	 * <strong>Should</strong> return ordered
 	 * @see org.openmrs.api.db.PatientDAO#getAllPatientIdentifierTypes(boolean)
 	 */
 	@SuppressWarnings("unchecked")
@@ -358,16 +356,16 @@ public class HibernatePatientDAO implements PatientDAO {
 	 * @see org.openmrs.api.db.PatientDAO#getPatientIdentifierTypes(java.lang.String,
 	 *      java.lang.String, java.lang.Boolean, java.lang.Boolean)
 	 *
-	 * @should return non retired patient identifier types with given name
-	 * @should return non retired patient identifier types with given format
-	 * @should return non retired patient identifier types that are not required
-	 * @should return non retired patient identifier types that are required
-	 * @should return non retired patient identifier types that has checkDigit
-	 * @should return non retired patient identifier types that has not CheckDigit
-	 * @should return only non retired patient identifier types
-	 * @should return non retired patient identifier types ordered by required first
-	 * @should return non retired patient identifier types ordered by required and name
-	 * @should return non retired patient identifier types ordered by required name and type id
+	 * <strong>Should</strong> return non retired patient identifier types with given name
+	 * <strong>Should</strong> return non retired patient identifier types with given format
+	 * <strong>Should</strong> return non retired patient identifier types that are not required
+	 * <strong>Should</strong> return non retired patient identifier types that are required
+	 * <strong>Should</strong> return non retired patient identifier types that has checkDigit
+	 * <strong>Should</strong> return non retired patient identifier types that has not CheckDigit
+	 * <strong>Should</strong> return only non retired patient identifier types
+	 * <strong>Should</strong> return non retired patient identifier types ordered by required first
+	 * <strong>Should</strong> return non retired patient identifier types ordered by required and name
+	 * <strong>Should</strong> return non retired patient identifier types ordered by required name and type id
 	 *
 	 */
 	@SuppressWarnings("unchecked")
@@ -815,9 +813,11 @@ public class HibernatePatientDAO implements PatientDAO {
 	}
 	private LuceneQuery<PatientIdentifier> getPatientIdentifierLuceneQuery(String query, List<PatientIdentifierType> identifierTypes, boolean matchExactly) {
 		LuceneQuery<PatientIdentifier> patientIdentifierLuceneQuery = getPatientIdentifierLuceneQuery(query, matchExactly);
+		List<Integer> identifierTypeIds = new ArrayList<Integer>();
 		for(PatientIdentifierType identifierType : identifierTypes) {
-			patientIdentifierLuceneQuery.include("identifierType.patientIdentifierTypeId", identifierType.getId());
+			identifierTypeIds.add(identifierType.getId());
 		}
+		patientIdentifierLuceneQuery.include("identifierType.patientIdentifierTypeId", identifierTypeIds);
 		patientIdentifierLuceneQuery.include("patient.isPatient", true);
 		patientIdentifierLuceneQuery.skipSame("patient.personId");
 		

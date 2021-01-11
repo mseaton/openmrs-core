@@ -281,13 +281,12 @@ public class ModuleFileParser {
 	private DocumentBuilder newDocumentBuilder() throws ParserConfigurationException {
 		DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
 		DocumentBuilder db = dbf.newDocumentBuilder();
-		db.setEntityResolver((publicId, systemId) -> {
-			// When asked to resolve external entities (such as a
-			// DTD) we return an InputSource
-			// with no data at the end, causing the parser to ignore
-			// the DTD.
-			return new InputSource(new StringReader(""));
-		});
+
+		// When asked to resolve external entities (such as a
+		// DTD) we return an InputSource
+		// with no data at the end, causing the parser to ignore
+		// the DTD.
+		db.setEntityResolver((publicId, systemId) -> new InputSource(new StringReader("")));
 		return db;
 	}
 
@@ -628,11 +627,11 @@ public class ModuleFileParser {
 	/**
 	 * Parses conditionalResources tag.
 	 *
-	 * @should parse openmrsVersion and modules
-	 * @should parse conditionalResource with whitespace
-	 * @should throw exception if multiple conditionalResources tags found
-	 * @should throw exception if conditionalResources contains invalid tag
-	 * @should throw exception if path is blank
+	 * <strong>Should</strong> parse openmrsVersion and modules
+	 * <strong>Should</strong> parse conditionalResource with whitespace
+	 * <strong>Should</strong> throw exception if multiple conditionalResources tags found
+	 * <strong>Should</strong> throw exception if conditionalResources contains invalid tag
+	 * <strong>Should</strong> throw exception if path is blank
 	 */
 	List<ModuleConditionalResource> extractConditionalResources(Element configRoot) {
 		List<ModuleConditionalResource> conditionalResources = new ArrayList<>();

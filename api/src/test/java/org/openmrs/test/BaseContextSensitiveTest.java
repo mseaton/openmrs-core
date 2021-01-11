@@ -22,6 +22,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -90,10 +91,10 @@ import org.openmrs.util.OpenmrsConstants;
 import org.openmrs.util.OpenmrsUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestExecutionListeners;
 import org.springframework.test.context.junit4.AbstractJUnit4SpringContextTests;
-import org.springframework.test.context.transaction.TransactionConfiguration;
 import org.springframework.test.context.transaction.TransactionalTestExecutionListener;
 import org.springframework.transaction.annotation.Transactional;
 import org.xml.sax.InputSource;
@@ -104,13 +105,19 @@ import org.xml.sax.InputSource;
  * spring enabled services do not need this class and extending this will only slow those test cases
  * down. (because spring is started before test cases are run). Normal test cases do not need to
  * extend anything
+ * @deprecated as of 2.4
+ * <p>openmrs-core migrated its tests from JUnit 4 to JUnit 5.
+ * JUnit 4 helpers are still supported so module developers can gradually migrate tests from JUnit 4 to JUnit 5. 
+ * To migrate your tests follow <a href="https://wiki.openmrs.org/display/docs/How+to+migrate+to+JUnit+5">How to migrate to JUnit 5</a>.
+ * The JUnit 5 version of the class is {@link org.openmrs.test.jupiter.BaseContextSensitiveTest}.<p>
  */
 @ContextConfiguration(locations = { "classpath:applicationContext-service.xml", "classpath*:openmrs-servlet.xml",
         "classpath*:moduleApplicationContext.xml", "classpath*:TestingApplicationContext.xml" })
 @TestExecutionListeners( { TransactionalTestExecutionListener.class, SkipBaseSetupAnnotationExecutionListener.class,
         StartModuleExecutionListener.class })
 @Transactional
-@TransactionConfiguration(defaultRollback = true)
+@Rollback
+@Deprecated
 public abstract class BaseContextSensitiveTest extends AbstractJUnit4SpringContextTests {
 	
 	private static final Logger log = LoggerFactory.getLogger(BaseContextSensitiveTest.class);
@@ -612,21 +619,20 @@ public abstract class BaseContextSensitiveTest extends AbstractJUnit4SpringConte
 	 * @param tableName the table that contains the column
 	 * @throws SQLException
 	 */
-	private void dropNotNullConstraint(String tableName, String columnName) throws SQLException {
+	protected void dropNotNullConstraint(String tableName, String columnName) throws SQLException {
 		if (!useInMemoryDatabase()) {
 			throw new RuntimeException("Altering column nullability is not supported for a non in-memory database");
 		}
 		final String sql = "ALTER TABLE " + tableName + " ALTER COLUMN " + columnName + " SET NULL";
 		DatabaseUtil.executeSQL(getConnection(), sql, false);
 	}
-
 	/**
 	 * Note that with the H2 DB this operation always commits an open transaction.
 	 * 
 	 * @param connection
 	 * @throws SQLException
 	 */
-	private void turnOnDBConstraints(Connection connection) throws SQLException {
+	protected void turnOnDBConstraints(Connection connection) throws SQLException {
 		String constraintsOnSql;
 		if (useInMemoryDatabase()) {
 			constraintsOnSql = "SET REFERENTIAL_INTEGRITY TRUE";
@@ -638,7 +644,7 @@ public abstract class BaseContextSensitiveTest extends AbstractJUnit4SpringConte
 		ps.close();
 	}
 	
-	private void turnOffDBConstraints(Connection connection) throws SQLException {
+	protected void turnOffDBConstraints(Connection connection) throws SQLException {
 		String constraintsOffSql;
 		if (useInMemoryDatabase()) {
 			constraintsOffSql = "SET REFERENTIAL_INTEGRITY FALSE";
@@ -689,7 +695,7 @@ public abstract class BaseContextSensitiveTest extends AbstractJUnit4SpringConte
 							throw new FileNotFoundException("Unable to find '" + datasetFilename + "' in the classpath");
 					}
 					
-					reader = new InputStreamReader(fileInInputStreamFormat);
+					reader = new InputStreamReader(fileInInputStreamFormat, StandardCharsets.UTF_8);
 					ReplacementDataSet replacementDataSet = new ReplacementDataSet(
 					        new FlatXmlDataSet(reader, false, true, false));
 					replacementDataSet.addReplacementObject("[NULL]", null);
@@ -823,7 +829,7 @@ public abstract class BaseContextSensitiveTest extends AbstractJUnit4SpringConte
 		}
 	}
 	
-	private IDatabaseConnection setupDatabaseConnection(Connection connection) throws DatabaseUnitException {
+	protected IDatabaseConnection setupDatabaseConnection(Connection connection) throws DatabaseUnitException {
 		IDatabaseConnection dbUnitConn = new DatabaseConnection(connection);
 		
 		if (useInMemoryDatabase()) {
